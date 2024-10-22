@@ -35,7 +35,9 @@ import javax.sql.DataSource;
         "org.scoula.report.mapper",
         "org.scoula.like.report.mapper",
         "org.scoula.like.property.mapper",
-        "org.scoula.test.mapper"})
+        "org.scoula.test.mapper",
+        "org.scoula.chat.mapper",
+})
 @ComponentScan(basePackages = {
         "org.scoula.oauth",
         "org.scoula.safety_inspection",

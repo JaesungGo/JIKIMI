@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.scoula.chat.mapper.ChatbotMapper">
+    <select id="getAllFaqs" resultType="org.scoula.chat.vo.ChatQVO">
+        select * from chatbot_tbl
+    </select>
+
+    <insert id="insertFaq">
+        insert into chatbot_tbl (question,answer,frequency) values (#{question},#{answer},1)
+    </insert>
+
+    <update id="incrementFrequency">
+        update chatbot_tbl set frequency = frequency+1 where chat_q_no = #{chatQNo}
+    </update>
+</mapper>

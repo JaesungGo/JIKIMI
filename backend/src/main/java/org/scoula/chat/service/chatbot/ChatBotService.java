@@ -1,10 +1,13 @@
 package org.scoula.chat.service.chatbot;
 
 import org.scoula.chat.dto.ChatRequestOptions;
+import org.scoula.chat.mapper.ChatbotMapper;
 import org.scoula.chat.service.ChatServiceImpl;
 import org.scoula.chat.service.WebClientService;
+import org.scoula.chat.vo.ChatQVO;
 import org.scoula.dictionary.domain.DictionaryVO;
 import org.scoula.dictionary.mapper.DictionaryMapper;
+import org.scoula.faq.domain.FaqVO;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -17,18 +20,30 @@ import java.util.regex.Pattern;
 public class ChatBotService extends ChatServiceImpl {
 
     private final DictionaryMapper dictionaryMapper;
+    private final ChatbotMapper chatbotMapper;
 
-    public ChatBotService(WebClientService webClientService, DictionaryMapper dictionaryMapper) {
+    // 단어 유사도 기준점
+    private static final double SIMILARITY_STANDARD = 0.8;
+
+    public ChatBotService(WebClientService webClientService, DictionaryMapper dictionaryMapper, ChatbotMapper chatbotMapper) {
         super(webClientService);
         this.dictionaryMapper = dictionaryMapper;
+        this.chatbotMapper = chatbotMapper;
     }
 
 
     @Override
     public Mono<String> getResponse(String prompt, List<String> selectedAnswers) {
-        System.out.println("prompt = " + prompt);
+        ChatQVO similarChat = findSimilarChat(prompt);
+        if(similarChat != null){
+            chatbotMapper.incrementFrequency(similarChat.getChatQNo());
+            return Mono.just(extractWordToLink(similarChat.getAnswer()));
+        }
         return super.getResponse(prompt, selectedAnswers)
-                .map(this::extractWordToLink);
+                .map(response -> {
+                    saveChatMessage(prompt,response);
+                    return extractWordToLink(response);
+                });
     }
 
     private String extractWordToLink(String response) {
@@ -57,6 +72,35 @@ public class ChatBotService extends ChatServiceImpl {
         }
 
 
+    }
+
+    private ChatQVO findSimilarChat(String prompt){
+        List<ChatQVO> chats = chatbotMapper.getAllFaqs();
+        double highSimilarity = 0;
+        ChatQVO mostSimilarQ = null;
+
+        for(ChatQVO chat : chats){
+            double similarity = calculateSimilarity(prompt, chat.getQuestion());
+            if(similarity > SIMILARITY_STANDARD && similarity > highSimilarity){
+                highSimilarity = similarity;
+                mostSimilarQ = chat;
+            }
+        }
+
+        return mostSimilarQ;
+    }
+
+    private double calculateSimilarity(String prompt, String question){
+
+
+        return 0.0;
+    }
+
+    private void saveChatMessage(String question, String answer){
+        ChatQVO chatQ = new ChatQVO();
+        chatQ.setQuestion(question);
+        chatQ.setAnswer(answer);
+        chatbotMapper.insertFaq(chatQ);
     }
 
     @Override

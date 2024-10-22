@@ -207,7 +207,18 @@ CREATE TABLE prevention_tbl (
                                 prevention_content mediumtext NOT NULL
 );
 
+DROP TABLE IF EXISTS chatbot_tbl;
+CREATE TABLE chatbot_tbl (
+    chat_q_no bigint PRIMARY KEY AUTO_INCREMENT,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    frequency INT default 1,
+    created_at timestamp default current_timestamp,
+    update_at timestamp default  current_timestamp on update current_timestamp
+)
+
 select * from analysis_tbl;
+select * from chatbot_tbl;
 select * from cor_tbl;
 select * from bml_tbl;
 select * from report_tbl;
