@@ -11,11 +11,6 @@ import javax.servlet.ServletRegistration;
 
 public class WebConfig extends AbstractAnnotationConfigDispatcherServletInitializer
 {
-//    final String LOCATION = "c:/upload";
-//    final long MAX_FILE_SIZE = 10L * 1024 * 1024;      // 1개
-//    final long MAX_REQUEST_SIZE = 20L * 1024 * 1024;   // 전체
-//    final int FILE_SIZE_THRESHOLD = 5 * 1024 * 1024;   // 임시파일 5메가 미만 메모리 직접처리
-
     @Override
     protected Class<?>[] getRootConfigClasses() {
         return new Class[] { RootConfig.class, SecurityConfig.class };
@@ -31,17 +26,5 @@ public class WebConfig extends AbstractAnnotationConfigDispatcherServletInitiali
     protected String[] getServletMappings() {
         return new String[] { "/" };
     }
-
-//     POST body 문자 인코딩 필터 설정 - UTF-8 설정
-//    @Override
-//    protected Filter[] getServletFilters() {
-//        CharacterEncodingFilter characterEncodingFilter = new CharacterEncodingFilter();
-//
-//        characterEncodingFilter.setEncoding("UTF-8");
-//        characterEncodingFilter.setForceEncoding(true);
-//
-//        return new Filter[] { characterEncodingFilter };
-//    }
-
 
 }

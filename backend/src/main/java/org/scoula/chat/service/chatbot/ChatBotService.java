@@ -63,7 +63,7 @@ public class ChatBotService extends ChatServiceImpl {
 
                 if (!newResponse.equals(response)) {
                     response = newResponse;
-                    break; // 변경된 경우 루프 종료
+                    break;
                 }
             }
             return response;
@@ -74,7 +74,7 @@ public class ChatBotService extends ChatServiceImpl {
 
     }
 
-    private ChatQVO findSimilarChat(String prompt){
+    private ChatQVO findSimilarChat(String prompt) {
         List<ChatQVO> chats = chatbotMapper.getAllFaqs();
         double highSimilarity = 0;
         ChatQVO mostSimilarQ = null;
@@ -86,14 +86,50 @@ public class ChatBotService extends ChatServiceImpl {
                 mostSimilarQ = chat;
             }
         }
-
         return mostSimilarQ;
     }
 
+    /**
+     * 코사인 유사도 계산 사용 A*B / (||A||*||B||)
+     * @param prompt
+     * @param question
+     * @return
+     */
     private double calculateSimilarity(String prompt, String question){
 
+        // 공백을 기준으로 단어 배열로 변환
+        String[] tokenPrompt = prompt.toLowerCase().split("\\s+");
+        String[] tokenQuestion = question.toLowerCase().split("\\s+");
 
-        return 0.0;
+        Map<String, Integer> frequencyP = getFrequency(tokenPrompt);
+        Map<String, Integer> frequencyQ = getFrequency(tokenQuestion);
+
+        double result = 0.0;
+        double norm1 = 0.0;
+        double norm2 = 0.0;
+
+        for(String word : frequencyP.keySet()){
+            if(frequencyQ.containsKey(word)) {
+                result += frequencyP.get(word) * frequencyQ.get(word);
+            }
+            norm1 += Math.pow(frequencyP.get(word),2);
+        }
+
+        for(Integer value : frequencyQ.values()){
+            norm2 += Math.pow(value,2);
+        }
+
+        if( norm1 == 0 || norm2 == 0) return 0;
+
+        return result / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    }
+
+    private Map<String, Integer> getFrequency(String[] tokens){
+        Map<String, Integer> frequency = new HashMap<>();
+        for(String token : tokens){
+            frequency.merge(token, 1, Integer::sum);
+        }
+        return frequency;
     }
 
     private void saveChatMessage(String question, String answer){

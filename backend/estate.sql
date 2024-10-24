@@ -210,8 +210,8 @@ CREATE TABLE prevention_tbl (
 DROP TABLE IF EXISTS chatbot_tbl;
 CREATE TABLE chatbot_tbl (
     chat_q_no bigint PRIMARY KEY AUTO_INCREMENT,
-    question TEXT NOT NULL,
-    answer TEXT NOT NULL,
+    question TEXT,
+    answer TEXT,
     frequency INT default 1,
     created_at timestamp default current_timestamp,
     update_at timestamp default  current_timestamp on update current_timestamp
