@@ -1,13 +1,11 @@
 package org.scoula.oauth.jwt.filter;
 
 import lombok.extern.slf4j.Slf4j;
-import org.scoula.oauth.jwt.JwtUtil;
+import org.scoula.oauth.jwt.service.JwtService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.*;
 import javax.servlet.http.Cookie;
@@ -22,10 +20,10 @@ import java.util.Collections;
  */
 public class JwtAuthenticationFilter implements Filter {
 
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
+    public JwtAuthenticationFilter(JwtService jwtService) {
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -47,8 +45,8 @@ public class JwtAuthenticationFilter implements Filter {
         }
 
         if (jwtToken != null) {
-            if (jwtUtil.validateToken(jwtToken)) { // 유효한 토큰인 경우
-                String userId = jwtUtil.getUserIdFromToken(jwtToken);
+            if (jwtService.validateToken(jwtToken)) { // 유효한 토큰인 경우
+                String userId = jwtService.getUserIdFromToken(jwtToken);
                 UserDetails userDetails = new User(userId, "", Collections.emptyList());
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

@@ -2,9 +2,7 @@ package org.scoula.report.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j;
-import org.scoula.like.report.mapper.LikeReportMapper;
-import org.scoula.like.report.service.LikeReportService;
-import org.scoula.oauth.jwt.JwtUtil;
+import org.scoula.oauth.jwt.service.JwtService;
 import org.scoula.report.domain.ReportDTO;
 import org.scoula.report.domain.ReportVO;
 import org.scoula.report.mapper.ReportMapper;
@@ -26,12 +24,12 @@ public class ReportServiceImpl implements ReportService {
     final private ReportMapper mapper;
     final private CopyOfRegisterMapper corMapper;
     final private BuildingManagementLedgerMapper bmlMapper;
-    final private JwtUtil jwtUtil;
+    final private JwtService jwtService;
 
     @Override
     public ReportDTO get(int reportNo, String token) {
         token = token.substring(7);
-        String userId = jwtUtil.getUserIdFromToken(token);
+        String userId = jwtService.getUserIdFromToken(token);
 
         log.info("reportNo : " + reportNo + "userId : " + userId);
         ReportDTO report = ReportDTO.of(mapper.get(reportNo, userId));

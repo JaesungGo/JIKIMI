@@ -3,8 +3,8 @@ FROM openjdk:17-jdk-slim
 
 WORKDIR /app
 
-COPY target/*.jar app.jar
+COPY target/*.war app.war
 
-EXPOSE 8081
+EXPOSE 8080
 
 ENTRYPOINT ["java","-jar","app.jar"]

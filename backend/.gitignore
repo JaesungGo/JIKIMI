@@ -44,5 +44,8 @@ bin/
 ### Mac OS ###
 .DS_Store
 
+.env
+.env.*
+!.env.exmample
 
 /src/main/resources/application.properties

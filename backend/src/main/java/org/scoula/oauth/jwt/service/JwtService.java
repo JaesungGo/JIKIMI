@@ -1,5 +1,5 @@
 // JwtUtil.java
-package org.scoula.oauth.jwt;
+package org.scoula.oauth.jwt.service;
 
 import io.jsonwebtoken.*;
 import org.scoula.oauth.domain.vo.Role;
@@ -14,13 +14,15 @@ import java.util.Date;
 /*
  * JWT 토큰을 생성하고 검증하는 유틸리티 클래스
  */
-public class JwtUtil {
+public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secretKey; // 시크릿 키
+    private final String secretKey; // 시크릿 키
+    private final long expirationTime; // 만료 시간 (밀리초)
 
-    @Value("${jwt.expired}")
-    private long expirationTime; // 만료 시간 (밀리초)
+    public JwtService(@Value("${jwt.secret}") String secretKey, @Value("${jwt.expired}") long expirationTime) {
+        this.secretKey = secretKey;
+        this.expirationTime = expirationTime;
+    }
 
     /**
      * JWT 토큰을 생성하는 메서드

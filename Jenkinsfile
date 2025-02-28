@@ -1,56 +1,51 @@
 pipeline {
     agent any
-
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('docker-hub-credentials')
-        GITHUB_CREDENTIALS = credentials('github-credentials')
-        DOCKER_IMAGE_FRONTEND = 'jikimi/frontend'
-        DOCKER_IMAGE_BACKEND = 'jikimi/backend'
-        DOCKER_TAG = 'latest'
+        DOCKERHUB_CREDENTIALS = credentials('docker-hub')
+        DOCKER_USERNAME = credentials('DOCKER_USERNAME')
     }
-
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Login to DockerHub') {
-            steps {
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-            }
-        }
-
-        stage('Build and Push Frontend') {
-            steps {
-                dir('frontend') {
-                    sh "docker build -t ${DOCKER_IMAGE_FRONTEND}:${DOCKER_TAG} ."
-                    sh "docker push ${DOCKER_IMAGE_FRONTEND}:${DOCKER_TAG}"
-                }
-            }
-        }
-
-        stage('Build and Push Backend') {
+        stage('Test') {
             steps {
                 dir('backend') {
-                    sh "docker build -t ${DOCKER_IMAGE_BACKEND}:${DOCKER_TAG} ."
-                    sh "docker push ${DOCKER_IMAGE_BACKEND}:${DOCKER_TAG}"
+                    sh './mvnw test'
+                }
+                dir('frontend') {
+                    sh 'npm test'
                 }
             }
         }
+        stage('Build and Push') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub') {
+                        def frontendImage = docker.build("${DOCKER_USERNAME}/frontend:latest", './frontend')
+                        def backendImage = docker.build("${DOCKER_USERNAME}/backend:latest", './backend')
 
+                        frontendImage.push()
+                        backendImage.push()
+                    }
+                }
+            }
+        }
         stage('Deploy') {
             steps {
-                sh 'docker-compose down || true'
+                sh 'docker-compose pull'
                 sh 'docker-compose up -d'
             }
         }
     }
-
     post {
         always {
+            sh 'docker logout'
             cleanWs()
+        }
+        failure {
+            emailext (
+                subject: "파이프라인 실패: ${currentBuild.fullDisplayName}",
+                body: "빌드 상태: ${currentBuild.result}",
+                to: 'your-email@domain.com'
+            )
         }
     }
 }

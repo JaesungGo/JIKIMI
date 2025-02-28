@@ -23,8 +23,6 @@ CREATE TABLE member_tbl (
 
 
 -- ------------------------------------------------------------------------------
-# property 관련 테이블 설정!
-SET GLOBAL local_infile = 1;
 show global variables like 'local_infile';
 
 # property_tbl 관련 추가!
@@ -55,7 +53,7 @@ CREATE TABLE property_tbl (
 );
 
 
-LOAD DATA LOCAL INFILE './property_tbl_final_3.csv'
+LOAD DATA LOCAL INFILE '/tmp/property_tbl_final_3.csv'
     INTO TABLE estate.property_tbl
     FIELDS TERMINATED BY ',' -- 필드 구분자를 콤마로 설정
     OPTIONALLY ENCLOSED BY '"' -- 필드가 큰따옴표로 감싸져 있는 경우 처리
@@ -74,11 +72,12 @@ CREATE TABLE property_location (
                                    jibun_juso VARCHAR(50)
 );
 
-LOAD DATA LOCAL INFILE './property_location_final_3.csv'
+LOAD DATA LOCAL INFILE '/tmp/property_location_final_3.csv'
     INTO TABLE estate.property_location
     FIELDS TERMINATED BY ',' -- 필드 구분자를 콤마로 설정
     OPTIONALLY ENCLOSED BY '"' -- 필드가 큰따옴표로 감싸져 있는 경우 처리
     LINES TERMINATED BY '\n'; -- 행 구분자를 줄바꿈으로 설정
+
 SELECT count(*) from property_location;
 -- member_report sample
 # desc member_report_tbl;
