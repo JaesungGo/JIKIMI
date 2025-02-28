@@ -21,7 +21,7 @@ import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
-@RequestMapping("/oauth")
+@RequestMapping("/api/oauth")
 @RestController
 public class OauthController {
 

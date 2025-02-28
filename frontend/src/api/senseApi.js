@@ -1,6 +1,6 @@
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/api/common-sense';
+const BASE_URL = '/common-sense';
 
 export default {
   async getList(params) {

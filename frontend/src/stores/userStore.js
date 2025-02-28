@@ -11,7 +11,7 @@ export const useUserStore = defineStore('user', {
     async fetchUserData() {
       try {
         // 서버에서 사용자 정보 가져오는 API 요청
-        const response = await axios.get('/api/user'); // 여기에 실제 API 경로 입력
+        const response = await axios.get('/user'); // 여기에 실제 API 경로 입력
         const userData = response.data;
 
         // 스토어 상태 업데이트

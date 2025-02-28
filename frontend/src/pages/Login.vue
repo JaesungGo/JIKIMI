@@ -23,18 +23,17 @@
 
 <script>
 import axios from 'axios';
+import axiosInstance from '@/axiosInstance';
 
 export default {
   name: 'login',
   methods: {
-    // handleKakaoLogin() {
-    //   window.location.href = 'http://localhost:8080/oauth/KAKAO';
-    // },
+    
     handleNaverLogin() {
-      window.location.href = 'http://localhost:8080/oauth/NAVER';
+      window.location.href = '/oauth/NAVER';
     },
     handleGoogleLogin() {
-      window.location.href = 'http://localhost:8080/oauth/GOOGLE';
+      window.location.href = '/oauth/GOOGLE';
     },
     async fetchToken(code, provider) {
       try {
