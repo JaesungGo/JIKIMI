@@ -1,7 +1,7 @@
 // src/api/dictionaryApi.js
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/like/property';
+const BASE_URL = '/api/like/property';
 
 export default {
   async create(proNo) {

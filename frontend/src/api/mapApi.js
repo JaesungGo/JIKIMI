@@ -1,6 +1,6 @@
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/map';
+const BASE_URL = '/api/map';
 
 export default {
   // 주소 리스트를 가져오는 함수

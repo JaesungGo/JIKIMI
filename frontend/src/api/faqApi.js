@@ -1,7 +1,7 @@
 // src/api/faqApi.js
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/faq';
+const BASE_URL = '/api/faq';
 
 export default {
   async getList(params) {

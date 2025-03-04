@@ -30,11 +30,11 @@ export default {
   methods: {
     
     handleNaverLogin() {
-      axiosInstance.get('/oauth/NAVER')
+      axiosInstance.get('/api/oauth/NAVER')
       return data;
     },
     handleGoogleLogin() {
-      axiosInstance.get('/oauth/NAVER')
+      axiosInstance.get('/api/oauth/NAVER')
       return data;
     },
     async fetchToken(code, provider) {
