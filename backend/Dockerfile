@@ -1,10 +1,9 @@
-# backend/Dockerfile
-FROM openjdk:17-jdk-slim
+FROM tomcat:9.0-jdk17-temurin
 
 WORKDIR /app
 
-COPY target/*.war app.war
+COPY /*.war app.war
 
 EXPOSE 8080
 
-ENTRYPOINT ["java","-jar","app.jar"]
+CMD ["catalina.sh", "run"]

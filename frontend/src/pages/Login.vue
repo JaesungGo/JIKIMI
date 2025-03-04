@@ -22,23 +22,25 @@
 </template>
 
 <script>
-import axios from 'axios';
 import axiosInstance from '@/axiosInstance';
+import { data } from 'autoprefixer';
 
 export default {
   name: 'login',
   methods: {
     
     handleNaverLogin() {
-      window.location.href = '/oauth/NAVER';
+      axiosInstance.get('/oauth/NAVER')
+      return data;
     },
     handleGoogleLogin() {
-      window.location.href = '/oauth/GOOGLE';
+      axiosInstance.get('/oauth/NAVER')
+      return data;
     },
     async fetchToken(code, provider) {
       try {
         // 인증 서버에서 JWT 쿠키를 설정
-        const response = await axios.get(
+        const response = await axiosInstance.get(
           `/oauth/login/${provider}?code=${code}`,
           {
             withCredentials: true, // 쿠키를 클라이언트에 저장

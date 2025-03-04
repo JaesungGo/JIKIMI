@@ -1,108 +1,149 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import addressApi from '@/api/mapApi'; // addressApi.js 임포트
+import addressApi from '@/api/mapApi';
 import LeftPanel from './LeftPanel.vue';
 
-const mapContainer = ref(null); // 지도 컨테이너
-const coordinates = ref([]); // API로부터 받아온 좌표 데이터를 저장할 변수
-let map,
-  clusterer,
-  marker,
-  markers = [], // 현재 지도에 표시된 마커들을 저장할 배열
-  overlays = []; // 커스텀 오버레이를 저장할 배열
-
-// 데이터를 서버에서 페이징 처리해서 가져오는 함수
+const mapContainer = ref(null);
+const coordinates = ref([]);
+let map, clusterer, marker;
+let markers = [];
+let overlays = [];
 let isFetching = false;
 let cancelPagination = false;
 
-const selectedProperty = ref(null); // 클릭된 매물 데이터를 저장할 변수
-const isPanelOpen = ref(false); // 패널 열림 상태
+// 데이터 캐싱을 위한 객체 추가
+const dataCache = {};
+const CACHE_MAX_SIZE = 5; // 캐시할 최대 지역 수
 
-const isDetailsVisible = ref(false); // 상세보기 토글 관련
+const selectedProperty = ref(null);
+const isPanelOpen = ref(false);
+const isDetailsVisible = ref(false);
 
-// 버튼 문구를 상태에 따라 다르게 표시
 const toggleButtonText = computed(() => {
   return isPanelOpen.value ? '지도 확대' : '지도 축소';
 });
 
-// 데이터를 서버에서 페이징 처리해서 가져오는 함수
-const fetchAddressData = async (
-  lat,
-  lon,
-  zoomLevel,
-  page = 1,
-  limit = 200
-) => {
+// 캐시 크기 제한 함수
+const limitCacheSize = (cache, maxSize) => {
+  const keys = Object.keys(cache);
+  if (keys.length > maxSize) {
+    // 가장 오래된 캐시 항목 삭제
+    delete cache[keys[0]];
+  }
+};
+
+// 리소스 정리 함수 - 메모리 관리를 위해 명시적으로 마커와 오버레이 제거
+const clearResources = () => {
+  // 기존 마커 모두 제거
+  markers.forEach(marker => marker.setMap(null));
+  
+  // 기존 오버레이 모두 제거
+  overlays.forEach(overlay => overlay.setMap(null));
+  
+  // 배열 초기화
+  markers = [];
+  overlays = [];
+};
+
+// 데이터 로드 함수 개선
+const fetchAddressData = async (lat, lon, zoomLevel, page = 1, limit = 200) => {
   if (cancelPagination) {
     console.log('Pagination cancelled.');
     return;
   }
+
+  // 캐시 키 생성
+  const cacheKey = `${lat.toFixed(3)}_${lon.toFixed(3)}_${zoomLevel}`;
+
+  // 낮은 줌 레벨일 때 처리 (상세 지도 표시)
   if (zoomLevel < 5) {
     try {
       isFetching = true;
-      const response =
-        await addressApi.getAddressListMoveAll(
-          lat,
-          lon,
-          zoomLevel
-        ); // API 호출
-      const newCoordinates = response.map((item) => ({
-        id: item.locationNo,
-        x: parseFloat(item.xcoordinate),
-        y: parseFloat(item.ycoordinate),
-        price: item.price,
-      }));
-
-      // 클러스터에 저장된 마커를 제거
-      clusterer.clear();
-      coordinates.value.push(...newCoordinates); // 새 데이터를 기존 데이터에 추가
-      updateMarkers(newCoordinates); // 새로운 데이터만 마커 추가
+      
+      // 캐시에 데이터가 있는지 확인
+      if (dataCache[cacheKey]) {
+        console.log('Using cached data');
+        const newCoordinates = dataCache[cacheKey];
+        
+        // 클러스터러 초기화
+        clusterer.clear();
+        
+        // 기존 좌표 배열 대체 (누적 대신)
+        coordinates.value = newCoordinates.slice();
+        
+        // 마커 업데이트
+        updateMarkers(newCoordinates);
+      } else {
+        // API 호출
+        const response = await addressApi.getAddressListMoveAll(lat, lon, zoomLevel);
+        const newCoordinates = response.map(item => ({
+          id: item.locationNo,
+          x: parseFloat(item.xcoordinate),
+          y: parseFloat(item.ycoordinate),
+          price: item.price,
+        }));
+        
+        // 캐시에 저장
+        dataCache[cacheKey] = newCoordinates;
+        limitCacheSize(dataCache, CACHE_MAX_SIZE);
+        
+        // 클러스터러 초기화
+        clusterer.clear();
+        
+        // 기존 좌표 배열 대체 (누적 대신)
+        coordinates.value = newCoordinates.slice();
+        
+        // 마커 업데이트
+        updateMarkers(newCoordinates);
+      }
     } catch (error) {
       console.error('Failed to fetch address data:', error);
     } finally {
       isFetching = false;
     }
   } else {
+    // 높은 줌 레벨에서 클러스터 처리 (개선된 페이징)
     try {
       isFetching = true;
-      const response =
-        await addressApi.getAddressListMoveClusterAll(
-          lat,
-          lon,
-          zoomLevel,
-          page,
-          limit
+      
+      // 재귀 호출 대신 반복문으로 구현
+      let allCoordinates = [];
+      let currentPage = page;
+      let hasMoreData = true;
+      
+      while (hasMoreData && !cancelPagination) {
+        const response = await addressApi.getAddressListMoveClusterAll(
+          lat, lon, zoomLevel, currentPage, limit
         );
-      overlays.forEach((overlay) => overlay.setMap(null));
-
-      const newCoordinates = response.map((item) => ({
-        id: item.locationNo,
-        x: parseFloat(item.xcoordinate),
-        y: parseFloat(item.ycoordinate),
-        price: item.price,
-      }));
-
-      if (newCoordinates.length > 0) {
-        // Update the cluster with new markers
-        updateMarkersCluster(newCoordinates);
-
-        // If the data length equals the limit, fetch the next page recursively
-        if (
-          newCoordinates.length === limit &&
-          !cancelPagination
-        ) {
-          await fetchAddressData(
-            lat,
-            lon,
-            zoomLevel,
-            page + 1,
-            limit
-          );
+        
+        const newCoordinates = response.map(item => ({
+          id: item.locationNo,
+          x: parseFloat(item.xcoordinate),
+          y: parseFloat(item.ycoordinate),
+          price: item.price,
+        }));
+        
+        allCoordinates = [...allCoordinates, ...newCoordinates];
+        
+        // 더 이상 데이터가 없거나 최대 페이지에 도달하면 종료
+        if (newCoordinates.length < limit || currentPage >= 5) {
+          hasMoreData = false;
         } else {
-          console.log('All data has been loaded.');
+          currentPage++;
         }
-      } else {
-        console.log('No more data to load.');
+      }
+      
+      // 캐시에 저장
+      dataCache[cacheKey] = allCoordinates;
+      limitCacheSize(dataCache, CACHE_MAX_SIZE);
+      
+      // 기존 모든 오버레이 제거
+      overlays.forEach(overlay => overlay.setMap(null));
+      overlays = [];
+      
+      // 클러스터 마커 업데이트 
+      if (allCoordinates.length > 0) {
+        updateMarkersCluster(allCoordinates);
       }
     } catch (error) {
       console.error('Failed to fetch address data:', error);
@@ -114,116 +155,87 @@ const fetchAddressData = async (
 
 // 지도 및 마커 클러스터러 초기화
 const initializeMap = () => {
-  let mapContainer = document.getElementById('map'), // 지도를 표시할 div
+  let mapContainer = document.getElementById('map'),
     mapOption = {
-      center: new kakao.maps.LatLng(
-        37.5538265102548,
-        126.968466927468
-      ), // 기본 좌표 : 서울역
-      level: 2, // 지도 확대 레벨
+      center: new kakao.maps.LatLng(37.5538265102548, 126.968466927468),
+      level: 2,
     };
 
-  map = new kakao.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
-
+  map = new kakao.maps.Map(mapContainer, mapOption);
   map.setMaxLevel(12);
+  
   // 마커 클러스터러 초기화
   clusterer = new kakao.maps.MarkerClusterer({
-    map: map, // 클러스터러에 추가할 지도 객체
-    averageCenter: true, // 클러스터 마커의 중심을 마커들의 평균 좌표로 설정
-    minLevel: 5, // 클러스터 할 최소 줌 레벨
-    minClusterSize: 2, // 클러스터링 할 최소 마커 수 (default: 2)
-    disableClickZoom: false, // 클러스터 클릭할 때 확대 방지
-    averageCenter: false, // 마커 중심을 계산하지 않도록 설정
+    map: map,
+    averageCenter: true,
+    minLevel: 5,
+    minClusterSize: 2,
+    disableClickZoom: false,
+    averageCenter: false,
   });
 
   // 클러스터 크기에 따른 문구 표시
   clusterer.setTexts(function (size) {
-    if (size >= 1000) {
-      return '1000+';
-    } else if (size >= 500) {
-      return '500+';
-    } else if (size >= 200) {
-      return '200+';
-    } else if (size >= 100) {
-      return '100+';
-    } else if (size >= 50) {
-      return '50+';
-    } else {
-      return size.toString(); // 그 이하일 때는 마커 개수 그대로 표시
-    }
+    if (size >= 1000) return '1000+';
+    else if (size >= 500) return '500+';
+    else if (size >= 200) return '200+';
+    else if (size >= 100) return '100+';
+    else if (size >= 50) return '50+';
+    else return size.toString();
   });
 
   // 클러스터 크기를 구분하는 기준 설정
   clusterer.setCalculator(function (size) {
-    if (size < 50) {
-      return 0; // 스타일 배열의 첫 번째 인덱스
-    } else if (size < 100) {
-      return 1; // 스타일 배열의 두 번째 인덱스
-    } else if (size < 200) {
-      return 2; // 스타일 배열의 세 번째 인덱스
-    } else if (size < 500) {
-      return 3; // 스타일 배열의 네 번째 인덱스
-    } else if (size < 1000) {
-      return 4; // 스타일 배열의 다섯 번째 인덱스
-    } else {
-      return 5; // 스타일 배열의 여섯 번째 인덱스
-    }
+    if (size < 50) return 0;
+    else if (size < 100) return 1;
+    else if (size < 200) return 2;
+    else if (size < 500) return 3;
+    else if (size < 1000) return 4;
+    else return 5;
   });
-  // 지도 이동 및 확대/축소 이벤트 리스너 등록
+  
+  // 지도 이동 이벤트 리스너 최적화
+  let idleTimer = null;
   kakao.maps.event.addListener(map, 'idle', function () {
-    // 지도 이동 시 이전 요청 취소
+    // 진행 중인 요청 취소
     if (isFetching) {
       cancelPagination = true;
     }
-
-    setTimeout(() => {
+    
+    // 디바운싱 적용 - 지도 이동이 연속으로 발생할 때 마지막 이벤트만 처리
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
       if (map) {
         cancelPagination = false;
-        // 지도의 레벨과 중심 좌표를 얻어옵니다
-        clusterer.removeMarkers(markers); // Remove all existing markers
-        markers = []; // Clear the marker array to prepare for new markers
+        
+        // 이전 리소스 정리
+        clearResources();
+        
+        // 클러스터에서 마커 제거
+        clusterer.clear();
+        
         const level = map.getLevel();
         const center = map.getCenter();
         const lat = center.getLat();
         const lon = center.getLng();
-        markers.forEach((marker) => marker.setMap(null));
-        overlays.forEach((overlay) => overlay.setMap(null));
-        // 새로운 데이터를 가져옵니다
+        
+        // 새 데이터 요청
         fetchAddressData(lat, lon, level);
       }
-    }, 100);
+    }, 300); // 디바운스 타임
   });
 
-  // 초기 데이터 로드
-  const initialCenter = map.getCenter();
-  const initialLevel = map.getLevel();
-  fetchAddressData(
-    initialCenter.getLat(),
-    initialCenter.getLng(),
-    initialLevel
-  );
-  // 컨트롤러 관련!!!!!!!!
-  // 지도에 컨트롤을 추가해야 지도위에 표시됩니다
-  map.addControl(
-    mapTypeControl,
-    kakao.maps.ControlPosition.TOPRIGHT
-  );
-  map.addControl(
-    zoomControl,
-    kakao.maps.ControlPosition.RIGHT
-  );
+  // 컨트롤 추가
+  map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+  map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-  // 초기 데이터 로드할 때 해당 좌표로 설정
-  // HTML5의 geolocation으로 사용할 수 있는지 확인합니다
+  // 초기 위치 설정
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const currentLat = position.coords.latitude;
         const currentLon = position.coords.longitude;
-        const currentPosition = new kakao.maps.LatLng(
-          currentLat,
-          currentLon
-        );
+        const currentPosition = new kakao.maps.LatLng(currentLat, currentLon);
         map.setCenter(currentPosition);
         map.setLevel(5);
       },
@@ -233,55 +245,38 @@ const initializeMap = () => {
     );
   }
 };
+
 // 즐겨찾기 선택시 이동하는 함수
 const moveToLikedProperty = async (wishlist) => {
   try {
-    const data = await addressApi.getAddressDetails(
-      wishlist.locationNo
-    );
-    selectedProperty.value = data; // 매물 정보 저장
-    // 좌표가 올바른지 확인하고 setMapCoordinates에 전달
-    if (
-      data &&
-      data[0].xcoordinate &&
-      data[0].ycoordinate
-    ) {
+    const data = await addressApi.getAddressDetails(wishlist.locationNo);
+    selectedProperty.value = data;
+    
+    if (data && data[0].xcoordinate && data[0].ycoordinate) {
       setMapCoordinates({
-        x: data[0].xcoordinate, // x 좌표
-        y: data[0].ycoordinate, // y 좌표
-        buildingName: data[0].propertyAddrAptName, // 건물 이름
-        doroJuso: data[0].doroJuso, // 도로명
+        x: data[0].xcoordinate,
+        y: data[0].ycoordinate,
+        buildingName: data[0].propertyAddrAptName,
+        doroJuso: data[0].doroJuso,
       });
     } else {
       console.error('Invalid coordinates:', data);
     }
   } catch (error) {
-    console.error(
-      'Failed to fetch address details:',
-      error
-    );
+    console.error('Failed to fetch address details:', error);
   }
 };
 
 // 검색을 통해 지도를 특정 좌표로 이동시키는 함수
-// let infoWindows = []; // InfoWindow 객체를 저장할 배열
-const setMapCoordinates = ({
-  x,
-  y,
-  buildingName,
-  doroJuso,
-}) => {
+const setMapCoordinates = ({ x, y, buildingName, doroJuso }) => {
   setTimeout(() => {
     if (map) {
-      // markers.forEach((marker) => marker.setMap(null));
-      // infoWindows.forEach((infoWindow) =>
-      //   infoWindow.close()
-      // );
-      const coords = new kakao.maps.LatLng(y, x); // 좌표로 LatLng 객체 생성
+      const coords = new kakao.maps.LatLng(y, x);
       map.panTo(coords);
-      map.setCenter(coords); // 지도 중심을 변경
+      map.setCenter(coords);
+      
       if (marker) {
-        marker.setPosition(coords); // 마커를 새 좌표로 이동
+        marker.setPosition(coords);
       } else {
         marker = new kakao.maps.Marker({
           position: coords,
@@ -292,9 +287,11 @@ const setMapCoordinates = ({
           ),
         });
       }
+      
       if (buildingName.startsWith('(')) {
         buildingName = doroJuso;
       }
+      
       map.setLevel(2, { animate: true });
     } else {
       console.error('Map is not initialized yet.');
@@ -302,13 +299,11 @@ const setMapCoordinates = ({
   }, 50);
 };
 
+// 마커 이미지 설정 - 메모리 절약을 위해 재사용
 const markerImage = new kakao.maps.MarkerImage(
   '../../src/assets/image-2.svg',
   new kakao.maps.Size(75, 75)
 );
-let clickedMarkers = []; //클릭된 마커들을 관리
-let clickedMarker = null; // 현재 클릭된 마커 추적
-
 const selectedMarkerImage = new kakao.maps.MarkerImage(
   '../../src/assets/image-2.svg',
   new kakao.maps.Size(105, 105)
@@ -317,20 +312,27 @@ const clickedMarkerImage = new kakao.maps.MarkerImage(
   '../../src/assets/image (3).png',
   new kakao.maps.Size(75, 75)
 );
+
+let clickedMarker = null;
+
+// 마커 업데이트 함수 개선
 const updateMarkers = (newCoords) => {
-  // 마커 이미지 설정
-  const newMarkers = newCoords.map((coord) => {
-    const markerPosition = new kakao.maps.LatLng(
-      coord.y,
-      coord.x
-    );
+  // 기존 마커와 오버레이 제거
+  clearResources();
+  
+  // 메모리를 위해 한 번에 처리할 마커 제한
+  const maxMarkers = 300;
+  const coordsToProcess = newCoords.slice(0, maxMarkers);
+  
+  const newMarkers = coordsToProcess.map((coord) => {
+    const markerPosition = new kakao.maps.LatLng(coord.y, coord.x);
     const marker = new kakao.maps.Marker({
       position: markerPosition,
       image: markerImage,
       zIndex: 2,
     });
 
-    // 커스텀 오버레이 HTML
+    // 커스텀 오버레이 간소화
     const overlayContent = document.createElement('div');
     overlayContent.className = 'customoverlay';
     overlayContent.innerHTML = `<div class="pricePopup"
@@ -342,246 +344,193 @@ const updateMarkers = (newCoords) => {
                                     >${coord.price}억
                                 </div>`;
 
-    // 커스텀 오버레이 생성
     const customOverlay = new kakao.maps.CustomOverlay({
-      position: markerPosition, // 마커와 동일한 위치에 오버레이 표시
-      content: overlayContent, // 커스텀 오버레이 내용
-      clickable: false, // 오버레이 클릭을 비활성화
+      position: markerPosition,
+      content: overlayContent,
+      clickable: false,
       yAnchor: 3,
       zIndex: 3,
     });
 
-    // 지도에 오버레이 추가
-    overlays.push(customOverlay); // 오버레이 배열에 추가
+    overlays.push(customOverlay);
     customOverlay.setMap(map);
 
-    // Hover 이벤트 동기화 함수
+    // 이벤트 핸들러 간소화
     const applyHoverStyle = (isHover) => {
       if (marker !== clickedMarker) {
-        marker.setImage(
-          isHover ? selectedMarkerImage : markerImage
-        );
+        marker.setImage(isHover ? selectedMarkerImage : markerImage);
       }
-      overlayContent.querySelector(
-        '.pricePopup'
-      ).style.fontSize = isHover ? '15px' : '11px';
-      overlayContent.querySelector(
-        '.pricePopup'
-      ).style.top = isHover ? '-14px' : '5px';
-      overlayContent.querySelector(
-        '.pricePopup'
-      ).style.right = isHover ? '14.5px' : '5.5px';
+      const pricePopup = overlayContent.querySelector('.pricePopup');
+      if (pricePopup) {
+        pricePopup.style.fontSize = isHover ? '15px' : '11px';
+        pricePopup.style.top = isHover ? '-14px' : '5px';
+        pricePopup.style.right = isHover ? '14.5px' : '5.5px';
+      }
     };
 
-    // Overlay와 Marker에 Hover 이벤트 등록
-    overlayContent.addEventListener('mouseover', () => {
-      if (clickedMarker !== marker) {
-        applyHoverStyle(true);
-      } else {
-        applyHoverStyle(false);
-      }
-    });
-    overlayContent.addEventListener('mouseout', () => {
-      applyHoverStyle(false);
-    });
-    overlayContent.addEventListener('click', () => {
-      applyHoverStyle(false);
-    });
-
-    kakao.maps.event.addListener(
-      marker,
-      'mouseover',
-      () => {
-        if (clickedMarker !== marker) {
-          applyHoverStyle(true);
+    // 효율적인 이벤트 핸들링
+    const eventHandlers = {
+      mouseover: () => {
+        if (clickedMarker !== marker) applyHoverStyle(true);
+      },
+      mouseout: () => applyHoverStyle(false),
+      click: async () => {
+        if (clickedMarker === marker) {
+          marker.setImage(markerImage);
+          clickedMarker = null;
         } else {
-          applyHoverStyle(false);
+          if (clickedMarker) {
+            clickedMarker.setImage(markerImage);
+          }
+          marker.setImage(clickedMarkerImage);
+          clickedMarker = marker;
         }
-      }
-    );
-    kakao.maps.event.addListener(marker, 'mouseout', () => {
-      applyHoverStyle(false);
-    });
-    kakao.maps.event.addListener(marker, 'click', () => {
-      applyHoverStyle(false);
-    });
-
-    // 클릭 이벤트 처리
-    const handleClick = async () => {
-      if (clickedMarker === marker) {
-        // 이미 클릭된 마커를 다시 클릭한 경우
-        marker.setImage(markerImage);
-        clickedMarker = null;
-      } else {
-        // 새로운 마커를 클릭한 경우
-        if (clickedMarker) {
-          // 이전에 클릭된 마커가 있다면 원래 이미지로 되돌림
-          clickedMarker.setImage(markerImage);
+        
+        try {
+          const data = await addressApi.getAddressDetails(coord.id);
+          selectedProperty.value = data;
+          isDetailsVisible.value = true;
+          
+          if (!isPanelOpen.value) {
+            togglePanel();
+          }
+        } catch (error) {
+          console.error('Failed to fetch address details:', error);
         }
-        // 현재 마커 이미지 변경
-        marker.setImage(clickedMarkerImage);
-        clickedMarker = marker;
-      }
-      try {
-        const data = await addressApi.getAddressDetails(
-          coord.id
-        );
-        selectedProperty.value = data; // 매물 정보 저장
-        isDetailsVisible.value = true; // 매물 상세보기 열기
-      } catch (error) {
-        console.error(
-          'Failed to fetch address details:',
-          error
-        );
-      }
-      if (!isPanelOpen.value) {
-        togglePanel(); // 패널 토글을 기다림
       }
     };
 
-    // 마커와 오버레이에 클릭 이벤트 등록
-    kakao.maps.event.addListener(
-      marker,
-      'click',
-      handleClick
-    );
-    overlayContent.addEventListener('click', (event) => {
-      event.stopPropagation();
-      handleClick();
+    // 이벤트 등록
+    kakao.maps.event.addListener(marker, 'mouseover', eventHandlers.mouseover);
+    kakao.maps.event.addListener(marker, 'mouseout', eventHandlers.mouseout);
+    kakao.maps.event.addListener(marker, 'click', eventHandlers.click);
+
+    overlayContent.addEventListener('mouseover', eventHandlers.mouseover);
+    overlayContent.addEventListener('mouseout', eventHandlers.mouseout);
+    overlayContent.addEventListener('click', (e) => {
+      e.stopPropagation();
+      eventHandlers.click();
     });
 
     return marker;
   });
 
-  markers.push(...newMarkers); // 마커 배열에 추가
-  clusterer.addMarkers(newMarkers); // 클러스터에 마커 추가
+  // 마커 배열 및 클러스터에 추가
+  markers = newMarkers;
+  clusterer.addMarkers(newMarkers);
 
-  kakao.maps.event.addListener(
-    clusterer,
-    'clustered',
-    () => {
-      overlays.forEach((overlay) => overlay.setMap(null));
-    }
-  );
+  // 클러스터 이벤트: 클러스터 형성 시 오버레이 숨기기
+  kakao.maps.event.addListener(clusterer, 'clustered', () => {
+    overlays.forEach(overlay => overlay.setMap(null));
+  });
 };
 
-// 클러스터 마커 업데이트 함수
+// 클러스터 마커 업데이트 함수 개선
 const updateMarkersCluster = (newCoords) => {
+  // 기존 마커 제거
+  markers.forEach(marker => marker.setMap(null));
+  markers = [];
+
+  // 작은 투명 마커 이미지 (메모리 최적화)
   const markerImageSVG = new kakao.maps.MarkerImage(
     '../../src/assets/marker.svg',
     new kakao.maps.Size(0, 0)
   );
 
-  // Batch adding markers
+  // 메모리를 위해 한 번에 처리할 마커 제한
+  const maxMarkers = 1000;
+  const coordsToProcess = newCoords.slice(0, maxMarkers);
+
+  // 배치 처리 최적화
   const batchSize = 200;
   let currentIndex = 0;
 
-  const addMarkersBatch = () => {
-    const batchMarkers = newCoords
-      .slice(currentIndex, currentIndex + batchSize)
-      .map((coord) => {
-        const markerPosition = new kakao.maps.LatLng(
-          coord.y,
-          coord.x
-        );
-        const marker = new kakao.maps.Marker({
-          position: markerPosition,
-          image: markerImageSVG,
-        });
-
-        markers.push(marker); // Add the new marker to the markers array
-        return marker;
+  // GC를 위해 함수 외부의 변수 사용 제한
+  const processNextBatch = () => {
+    if (currentIndex >= coordsToProcess.length || cancelPagination) {
+      return;
+    }
+    
+    const endIndex = Math.min(currentIndex + batchSize, coordsToProcess.length);
+    const batchMarkers = [];
+    
+    for (let i = currentIndex; i < endIndex; i++) {
+      const coord = coordsToProcess[i];
+      const markerPosition = new kakao.maps.LatLng(coord.y, coord.x);
+      const marker = new kakao.maps.Marker({
+        position: markerPosition,
+        image: markerImageSVG
       });
-
-    clusterer.addMarkers(batchMarkers); // Add new markers to the clusterer
-    currentIndex += batchSize;
-
-    if (currentIndex < newCoords.length) {
-      requestAnimationFrame(addMarkersBatch); // Asynchronously process the next batch
+      
+      batchMarkers.push(marker);
+      markers.push(marker);
+    }
+    
+    clusterer.addMarkers(batchMarkers);
+    currentIndex = endIndex;
+    
+    // 비동기로 다음 배치 처리 (call stack 최적화)
+    if (currentIndex < coordsToProcess.length && !cancelPagination) {
+      setTimeout(processNextBatch, 0);
     }
   };
-
-  addMarkersBatch(); // Start processing the first batch of markers
+  
+  processNextBatch();
 };
 
 const togglePanel = () => {
   isPanelOpen.value = !isPanelOpen.value;
-  // 패널이 열리고 닫힌 후 지도의 크기를 재설정하여 좌표와 마커가 정상적으로 보이게 함
+  
+  // 패널 토글 후 지도 리사이즈 - 성능 최적화를 위해 지연
   setTimeout(() => {
     if (map) {
-      map.relayout(); // 패널 상태가 바뀐 후 지도의 크기를 다시 설정
+      map.relayout();
     }
   }, 100);
 };
 
 // 지도 컨트롤러 관련 기능
-// 일반 지도와 스카이뷰로 지도 타입을 전환할 수 있는 지도타입 컨트롤을 생성합니다
 let mapTypeControl = new kakao.maps.MapTypeControl();
-
-// 지도 확대 축소를 제어할 수 있는  줌 컨트롤을 생성합니다
 let zoomControl = new kakao.maps.ZoomControl();
 
-// 지도 타입 정보를 가지고 있을 객체입니다
 let mapTypes = {
   useDistrict: kakao.maps.MapTypeId.USE_DISTRICT,
   terrain: kakao.maps.MapTypeId.TERRAIN,
   traffic: kakao.maps.MapTypeId.TRAFFIC,
 };
 
-// 체크 박스를 선택하면 호출되는 함수입니다
-// 전역 스코프에서 함수 선언
+// 전역 함수 메모리 최적화
 window.setOverlayMapTypeId = function () {
-  var chkUseDistrict = document.getElementById(
-      'chkUseDistrict'
-    ),
-    chkTerrain = document.getElementById('chkTerrain'),
-    chkTraffic = document.getElementById('chkTraffic');
+  const chkUseDistrict = document.getElementById('chkUseDistrict');
+  const chkTerrain = document.getElementById('chkTerrain');
+  const chkTraffic = document.getElementById('chkTraffic');
 
-  // 지도 타입을 제거합니다
-  for (var type in mapTypes) {
+  // 지도 타입 초기화
+  for (const type in mapTypes) {
     map.removeOverlayMapTypeId(mapTypes[type]);
   }
 
-  // 지적편집도정보 체크박스가 체크되어있으면 지도에 지적편집도정보 지도타입을 추가합니다
-  if (chkUseDistrict.checked) {
+  // 선택된 옵션만 추가
+  if (chkUseDistrict && chkUseDistrict.checked) {
     map.addOverlayMapTypeId(mapTypes.useDistrict);
   }
-
-  // 지형정보 체크박스가 체크되어있으면 지도에 지형정보 지도타입을 추가합니다
-  if (chkTerrain.checked) {
+  if (chkTerrain && chkTerrain.checked) {
     map.addOverlayMapTypeId(mapTypes.terrain);
   }
-
-  // 교통정보 체크박스가 체크되어있으면 지도에 교통정보 지도타입을 추가합니다
-  if (chkTraffic.checked) {
+  if (chkTraffic && chkTraffic.checked) {
     map.addOverlayMapTypeId(mapTypes.traffic);
   }
 };
 
-// 현재 위치로 이동하는 함수
+// 현재 위치로 이동 함수 (메모리 최적화)
 window.moveToCurrentLocation = function () {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const currentLat = position.coords.latitude;
-        const currentLon = position.coords.longitude;
         const currentPosition = new kakao.maps.LatLng(
-          currentLat,
-          currentLon
+          position.coords.latitude,
+          position.coords.longitude
         );
-
-        // var marker = new kakao.maps.Marker({
-        //   map: map,
-        //   position: currentPosition,
-        // });
-        // var infowindow = new kakao.maps.InfoWindow({
-        //   position: currentPosition,
-        //   content: '현재위치',
-        // });
-        // infowindow.open(map, marker);
-        // marker.setOpacity(0);
-
-        // 지도 중심을 현재 위치로 이동
         map.setCenter(currentPosition);
         map.setLevel(5);
       },
@@ -591,13 +540,16 @@ window.moveToCurrentLocation = function () {
       }
     );
   } else {
-    // Geolocation을 지원하지 않는 경우 처리
     alert('현재 위치 기능을 사용할 수 없습니다.');
   }
 };
 
+// 컴포넌트 마운트 시 지도 초기화
 onMounted(() => {
-  initializeMap(); // 지도 초기화 및 데이터 로드
+  // 지도 초기화 시간 지연
+  setTimeout(() => {
+    initializeMap();
+  }, 0);
 });
 </script>
 
@@ -610,9 +562,7 @@ onMounted(() => {
       @toggle-panel="togglePanel"
       @move-map-to-coordinates="setMapCoordinates"
       @favoriteItem="moveToLikedProperty"
-      @update:isDetailsVisible="
-        (val) => (isDetailsVisible = val)
-      "
+      @update:isDetailsVisible="(val) => (isDetailsVisible = val)"
     />
 
     <div
@@ -621,14 +571,12 @@ onMounted(() => {
         'right-panel': isPanelOpen,
       }"
     >
-      <!-- 수정 1: 지도 좌측 상단에 버튼 추가 -->
       <button class="toggle-panel-btn" @click="togglePanel">
         {{ toggleButtonText }}
       </button>
 
-      <!-- 지도가 보여지는 지점 -->
       <div id="map" ref="mapContainer"></div>
-      <!-- 지도 아래쪽에 새로운 버튼 컨트롤러 추가 -->
+      
       <div class="custom_maptypecontrol">
         <input
           type="checkbox"
@@ -646,7 +594,7 @@ onMounted(() => {
           onclick="setOverlayMapTypeId()"
         />교통정보
       </div>
-      <!-- 현재 위치로 이동하는 버튼 추가 -->
+      
       <button
         class="location-btn"
         onclick="moveToCurrentLocation()"
