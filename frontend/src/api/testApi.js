@@ -1,6 +1,6 @@
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/api/test'; // Your base URL
+const BASE_URL = '/test'; // Your base URL
 
 export default {
   async createCor(params) {

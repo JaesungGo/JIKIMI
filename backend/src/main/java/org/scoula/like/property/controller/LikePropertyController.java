@@ -14,7 +14,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/like/property")
+@RequestMapping("/like/property")
 public class LikePropertyController {
 
     final LikePropertyService service;

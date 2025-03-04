@@ -17,7 +17,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/faq")
+@RequestMapping("/faq")
 public class FaqController {
 
     final FaqService service;

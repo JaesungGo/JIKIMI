@@ -1,6 +1,6 @@
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/api/prevention';
+const BASE_URL = '/prevention';
 
 export default {
   async getList(params) {

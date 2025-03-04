@@ -1,6 +1,6 @@
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/api/oauth/info'; // Your base URL
+const BASE_URL = '/oauth/info'; // Your base URL
 
 export default {
   // GET request to retrieve user info
