@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/common-sense")
+@RequestMapping("/common-sense")
 public class CommonSenseController {
 
     final CommonSenseService service;

@@ -31,7 +31,7 @@ public class ServletConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:5173")
-                .allowedOrigins(base_uri)
+                .allowedOrigins("http://"+base_uri)
                 .allowCredentials(true)
                 .allowedMethods("*")
                 .allowedHeaders("*");

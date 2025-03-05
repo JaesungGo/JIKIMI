@@ -97,6 +97,7 @@
 
 <script>
 import Loading from '@/pages/Loading.vue';
+import scenarioApi from '@/api/scenarioApi';
 
 export default {
   components: {
@@ -171,22 +172,7 @@ export default {
         .map((question) => question.message);
 
       try {
-        const response = await fetch(
-          'http://localhost:8080/api/chat/scenario',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ selectedAnswers: selectedMessages }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('서버로부터 응답이 없습니다.');
-        }
-
-        const data = await response.json();
+        const data = await scenarioApi.getScenarioData(selectedMessages);
         this.scenarios = this.extractScenarios(data.content);
       } catch (error) {
         console.error('문제가 발생했습니다:', error);

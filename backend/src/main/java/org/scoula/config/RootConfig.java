@@ -29,10 +29,10 @@ import javax.sql.DataSource;
 @EnableTransactionManagement
 public class RootConfig {
 
-    @Value("${spring.datasource.jdbc.driver-class-name}") String driver;
-    @Value("${spring.datasource.jdbc.url}") String url;
-    @Value("${spring.datasource.jdbc.username}") String username;
-    @Value("${spring.datasource.jdbc.password}") String password;
+    @Value("${spring.datasource.driver-class-name}") String driver;
+    @Value("${spring.datasource.url}") String url;
+    @Value("${spring.datasource.username}") String username;
+    @Value("${spring.datasource.password}") String password;
 
     @Bean
     public DataSource dataSource() {

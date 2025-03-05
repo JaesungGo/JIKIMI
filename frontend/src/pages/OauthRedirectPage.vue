@@ -6,7 +6,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import axiosInstance  from '@/axiosInstance';
 import { useRouter, useRoute } from 'vue-router';
 
 export default {
@@ -19,7 +19,7 @@ export default {
 
     const handleOAuth = async (code, provider) => {
       try {
-        const response = await axios.get(`http://localhost:8080/oauth/login/${provider}?code=${code}`,
+        const response = await axiosInstance.get(`/oauth/login/${provider}?code=${code}`,
          {withCredentials: true});
         router.push("/");
       } catch (error) {
