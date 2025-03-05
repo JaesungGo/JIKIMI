@@ -1,3 +1,9 @@
+FROM gradle:jdk17 AS build
+WORKDIR /app
+COPY . .
+RUN chmod +x ./gradlew
+RUN ./gradlew clean build -x test
+
 FROM tomcat:9.0-jdk17-temurin
 
 # 애플리케이션에 필요한 디렉토리 생성
@@ -11,7 +17,6 @@ log4j.appender.stdout.layout=org.apache.log4j.PatternLayout\n\
 log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n\
 log4j.logger.org.springframework=DEBUG" > /usr/local/tomcat/lib/log4j.properties
 
-RUN ./gradlew clean build -x test
 
 # WAR 파일 복사 (실제 WAR 파일명으로 수정)
 COPY /build/libs/backend-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/ROOT.war

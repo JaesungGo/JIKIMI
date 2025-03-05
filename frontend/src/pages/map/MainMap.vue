@@ -3,6 +3,11 @@ import { ref, onMounted, computed } from 'vue';
 import addressApi from '@/api/mapApi';
 import LeftPanel from './LeftPanel.vue';
 
+// 이미지 import 추가
+import markerIcon from '@/assets/image-2.svg';
+import markerSelectedIcon from '@/assets/image-2.svg';
+import markerClickedIcon from '@/assets/image (3).png';
+
 const mapContainer = ref(null);
 const coordinates = ref([]);
 let map, clusterer, marker;
@@ -282,7 +287,7 @@ const setMapCoordinates = ({ x, y, buildingName, doroJuso }) => {
           position: coords,
           map: map,
           image: new kakao.maps.MarkerImage(
-            '../../src/assets/marker.svg',
+            markerIcon,
             new kakao.maps.Size(40, 40)
           ),
         });
@@ -301,15 +306,15 @@ const setMapCoordinates = ({ x, y, buildingName, doroJuso }) => {
 
 // 마커 이미지 설정 - 메모리 절약을 위해 재사용
 const markerImage = new kakao.maps.MarkerImage(
-  '../../src/assets/image-2.svg',
+  markerIcon,
   new kakao.maps.Size(75, 75)
 );
 const selectedMarkerImage = new kakao.maps.MarkerImage(
-  '../../src/assets/image-2.svg',
+  markerSelectedIcon,
   new kakao.maps.Size(105, 105)
 );
 const clickedMarkerImage = new kakao.maps.MarkerImage(
-  '../../src/assets/image (3).png',
+  markerClickedIcon,
   new kakao.maps.Size(75, 75)
 );
 
