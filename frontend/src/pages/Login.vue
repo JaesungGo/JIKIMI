@@ -30,7 +30,7 @@ export default {
   methods: {
     async handleNaverLogin() {
       try {
-        const response = await axiosInstance.get('/oauth/NAVER');
+        window.location.href = `${import.meta.env.VITE_API_URL}/api/oauth/NAVER`;
         console.log('Naver login initiated', response.data);
       } catch (error) {
         console.error('Error during Naver login', error);
@@ -39,7 +39,7 @@ export default {
     
     async handleGoogleLogin() {
       try {
-        const response = await axiosInstance.get('/oauth/GOOGLE');
+        window.location.href = `${import.meta.env.VITE_API_URL}/api/oauth/GOOGLE`;
         console.log('Google login initiated', response.data);
       } catch (error) {
         console.error('Error during Google login', error);
