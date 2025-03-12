@@ -4,16 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.scoula.common.pagination.Page;
 import org.scoula.common.pagination.PageRequest;
-import org.scoula.like.report.domain.LikeReportDTO;
-import org.scoula.like.report.domain.LikeReportVO;
 import org.scoula.like.report.mapper.LikeReportMapper;
-import org.scoula.oauth.jwt.JwtUtil;
+import org.scoula.oauth.jwt.service.JwtService;
 import org.scoula.report.domain.ReportDTO;
 import org.scoula.report.domain.ReportVO;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -23,12 +19,12 @@ public class LikeReportServiceImpl implements LikeReportService {
 
     private final LikeReportMapper mapper;
 
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
 
     @Override
     public int create(int reportNo, String token) {
         token = token.substring(7);
-        String userId = jwtUtil.getUserIdFromToken(token);
+        String userId = jwtService.getUserIdFromToken(token);
 
         return mapper.create(reportNo, userId);
     }
@@ -37,7 +33,7 @@ public class LikeReportServiceImpl implements LikeReportService {
     public Page<ReportDTO> getPage(String token, PageRequest pageRequest) {
 
         token = token.substring(7);
-        String userId = jwtUtil.getUserIdFromToken(token);
+        String userId = jwtService.getUserIdFromToken(token);
         System.out.println("userId: " + userId);
         System.out.println("pageRequest: " + pageRequest);
         List<ReportVO> report = mapper.getPage(userId, pageRequest);
@@ -51,7 +47,7 @@ public class LikeReportServiceImpl implements LikeReportService {
     @Override
     public List<ReportDTO> getList(String token) {
         token = token.substring(7);
-        String userId = jwtUtil.getUserIdFromToken(token);
+        String userId = jwtService.getUserIdFromToken(token);
         System.out.println("userId = " + userId);
         return mapper.getList(userId).stream()
                 .map(ReportDTO::of)

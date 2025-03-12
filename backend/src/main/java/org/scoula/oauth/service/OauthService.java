@@ -8,7 +8,7 @@ import org.scoula.oauth.domain.client.OauthMemberClientComposite;
 import org.scoula.oauth.domain.vo.OauthMemberVO;
 import org.scoula.oauth.domain.vo.OauthServerType;
 import org.scoula.oauth.domain.vo.Role;
-import org.scoula.oauth.jwt.JwtUtil;
+import org.scoula.oauth.jwt.service.JwtService;
 import org.scoula.oauth.mapper.OauthMemberMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +30,7 @@ public class OauthService {
 
     private final OauthMemberMapper oauthMemberMapper;
 
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
 
 
     public String getAuthCodeRequestUrl(OauthServerType oauthServerType) {
@@ -52,7 +52,7 @@ public class OauthService {
             oauthMemberMapper.save(oauthMemberVO);
         }
 
-        String jwtToken = jwtUtil.generateToken(oauthMemberVO.getUserId(), oauthMemberVO.getRole());
+        String jwtToken = jwtService.generateToken(oauthMemberVO.getUserId(), oauthMemberVO.getRole());
 
         Cookie jwtCookie = new Cookie("jwtToken", jwtToken);
         jwtCookie.setHttpOnly(false);
@@ -67,14 +67,14 @@ public class OauthService {
     public OauthMemberDTO getInfo(String token) {
 
         token = token.substring(7);
-        String userId = jwtUtil.getUserIdFromToken(token);
+        String userId = jwtService.getUserIdFromToken(token);
 
         return OauthMemberDTO.of(oauthMemberMapper.findByOauthId(userId));
     }
 
     public int updateInfo(String token, OauthMemberDTO member) {
         token = token.substring(7);
-        String userId = jwtUtil.getUserIdFromToken(token);
+        String userId = jwtService.getUserIdFromToken(token);
         log.info("-------------update service-------------");
 
         return oauthMemberMapper.updateOauthInfo(userId, member);

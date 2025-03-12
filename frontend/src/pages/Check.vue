@@ -132,7 +132,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import axiosInstance from '../axiosInstance';
 
 // 상태 관리
 const addresses = ref([]);
@@ -144,34 +144,12 @@ const isLoading = ref(false);
 const residenceType = ref(null);
 const showAddressForm = ref(false);
 
-// API 설정
-const api = axios.create({
-  baseURL: 'http://localhost:8080/api/safety-inspection',
-  timeout: 5000,
-});
-
 // 에러 처리 함수
 const handleError = (error, customMessage) => {
   console.error(error);
   errorMessage.value = customMessage || '처리 중 오류가 발생했습니다. 다시 시도해 주세요.';
   isLoading.value = false;
 };
-
-// 주소 목록 조회
-// const fetchAddresses = async () => {
-//   if (isLoading.value) return;
-  
-//   isLoading.value = true;
-//   try {
-//     const response = await api.post('/address');
-//     addresses.value = response.data.res;
-//     showAddressForm.value = false;
-//   } catch (error) {
-//     handleError(error, '주소 목록을 가져오는 데 실패했습니다.');
-//   } finally {
-//     isLoading.value = false;
-//   }
-// };
 
 // Daum 우편번호 검색
 const openDaumPostcode = () => {
@@ -208,7 +186,7 @@ const submitForm = async () => {
   
   isLoading.value = true;
   try {
-    console.log('jibun before:',selectedAddress.value.jibunAddress);
+    console.log('jibun before:', selectedAddress.value.jibunAddress);
     const lotNumberParts = selectedAddress.value.jibunAddress.split(' ');
     const lotNumber = lotNumberParts[lotNumberParts.length - 1];
 
@@ -222,12 +200,11 @@ const submitForm = async () => {
       realtyType: residenceType.value === 'yes' ? 1 : 0
     };
 
-    const response = await api.post('/address', payload);
+    const response = await axiosInstance.post('/safety-inspection/address', payload);
     if (Array.isArray(response.data) && response.data.length > 0) {
       addresses.value = response.data;
       showAddressForm.value = false;
       selectedAddress.value = null;
-      // residenceType.value = null;
       dong.value = '';
       ho.value = '';
     } else {
@@ -245,15 +222,11 @@ const sendUniqueCode = async (uniqueCode) => {
   if (isLoading.value) return;
   
   isLoading.value = true;
-  console.log('residenceType in send:', residenceType.value);
   try {
-    const payload= {
-      uniqueCode,
-      realtyType: residenceType.value === 'yes' ? 1: 0
-    };
-    console.log('realtyType:',payload.realtyType);
-    await api.post('/cors', payload);
-    resetForm(true);
+    const response = await axiosInstance.post('/safety-inspection/unique-code', {
+      uniqueCode: uniqueCode
+    });
+    // 성공 처리 로직
   } catch (error) {
     handleError(error, '유니크 코드 전송에 실패했습니다.');
   } finally {
@@ -270,9 +243,7 @@ const resetForm = (fullReset = true) => {
   }
   dong.value = '';
   ho.value = '';
-  // residenceType.value = null;
   errorMessage.value = '';
-  console.log('realtyType:', residenceType.value);
 };
 
 onMounted(() => {

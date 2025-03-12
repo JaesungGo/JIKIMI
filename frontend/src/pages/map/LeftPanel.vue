@@ -469,7 +469,7 @@ const toggleBlogSearch = () => {
 const searchBlogs = async (query) => {
   isLoading.value = true;
   try {
-    const response = await axiosInstance.get('/api/blog', {
+    const response = await axiosInstance.get('/blog', {
       params: {
         query: query,
         display: 5, // 표시할 블로그 포스트 수
@@ -502,7 +502,7 @@ const toggleImageSearch = () => {
 const searchLocal = async (query) => {
   isLocalLoading.value = true;
   try {
-    const response = await axiosInstance.get('/api/local', {
+    const response = await axiosInstance.get('/local', {
       params: {
         query: query,
         display: 5,
@@ -539,7 +539,7 @@ const searchLocal = async (query) => {
 const searchImages = async (query) => {
   isImageLoading.value = true;
   try {
-    const response = await axiosInstance.get('/api/image', {
+    const response = await axiosInstance.get('/image', {
       params: {
         query: query,
         display: 9,

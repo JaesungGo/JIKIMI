@@ -88,7 +88,7 @@ const load = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const response = await api.getList({ page: 1, amount: 1000 }); // 큰 수를 지정하여 모든 항목을 가져옵니다
+    const response = await api.getList({ page: 1, amount: 10 }); // 큰 수를 지정하여 모든 항목을 가져옵니다
     articles.value = response.list;
   } catch (error) {
     console.error('게시글 로드 실패:', error);

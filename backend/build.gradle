@@ -6,11 +6,6 @@ plugins {
 group 'org.scoula'
 version '1.0-SNAPSHOT'
 
-// codef 버전
-group = 'io.codef.api'
-version = '1.0.6'
-
-
 repositories {
   mavenCentral()
 }

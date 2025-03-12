@@ -5,7 +5,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.scoula.oauth.domain.dto.OauthMemberDTO;
 import org.scoula.oauth.domain.vo.OauthServerType;
-import org.scoula.oauth.jwt.JwtUtil;
+import org.scoula.oauth.jwt.service.JwtService;
 import org.scoula.oauth.service.OauthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +26,7 @@ import java.util.Map;
 public class OauthController {
 
     private final OauthService oauthService;
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
 
 
 
@@ -65,9 +65,9 @@ public class OauthController {
 
         token = token.substring(7); // "Bearer " 제거
 
-        boolean isValid = jwtUtil.validateToken(token);
+        boolean isValid = jwtService.validateToken(token);
         if (isValid) {
-            String userId = jwtUtil.getUserIdFromToken(token);
+            String userId = jwtService.getUserIdFromToken(token);
             System.out.println("userId = " + userId);
             return ResponseEntity.ok(Map.of("isAuthenticated", true, "userId", userId));
         } else {

@@ -23,43 +23,16 @@ import javax.sql.DataSource;
 
 @Configuration
 @PropertySource({"classpath:/application.properties"})
-@MapperScan(basePackages = {
-        "org.scoula.oauth.mapper",
-        "org.scoula.safety_inspection",
-        "org.scoula.commonsense.mapper",
-        "org.scoula.dictionary.mapper",
-        "org.scoula.faq.mapper",
-        "org.scoula.map.mapper",
-        "org.scoula.like.dictionary.mapper",
-        "org.scoula.prevention.mapper",
-        "org.scoula.report.mapper",
-        "org.scoula.like.report.mapper",
-        "org.scoula.like.property.mapper",
-        "org.scoula.test.mapper"})
-@ComponentScan(basePackages = {
-        "org.scoula.oauth",
-        "org.scoula.safety_inspection",
-        "org.scoula.commonsense.service",
-        "org.scoula.dictionary.service",
-        "org.scoula.faq.service",
-        "org.scoula.map.service",
-        "org.scoula.chat.service",
-        "org.scoula.like.dictionary.service",
-        "org.scoula.prevention.service",
-        "org.scoula.report.service",
-        "org.scoula.like.report.service",
-        "org.scoula.like.property.service",
-        "org.scoula.test.service",
-        "org.scoula.naver_api.service"
-})
+@MapperScan(basePackages = "org.scoula.**.mapper")
+@ComponentScan(basePackages = "org.scoula.**")
 @Slf4j
 @EnableTransactionManagement
 public class RootConfig {
 
-    @Value("${jdbc.driver}") String driver;
-    @Value("${jdbc.url}") String url;
-    @Value("${jdbc.username}") String username;
-    @Value("${jdbc.password}") String password;
+    @Value("${spring.datasource.driver-class-name}") String driver;
+    @Value("${spring.datasource.url}") String url;
+    @Value("${spring.datasource.username}") String username;
+    @Value("${spring.datasource.password}") String password;
 
     @Bean
     public DataSource dataSource() {

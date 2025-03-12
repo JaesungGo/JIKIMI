@@ -15,7 +15,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/dictionary")
+@RequestMapping("/dictionary")
 public class DictionaryController {
 
     final DictionaryService service;

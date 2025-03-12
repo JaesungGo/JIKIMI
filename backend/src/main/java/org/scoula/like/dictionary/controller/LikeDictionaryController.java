@@ -12,7 +12,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/like/dictionary")
+@RequestMapping("/like/dictionary")
 public class LikeDictionaryController {
 
     final LikeDictionaryService service;

@@ -1,7 +1,7 @@
 package org.scoula.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.scoula.oauth.jwt.JwtUtil;
+import org.scoula.oauth.jwt.service.JwtService;
 import org.scoula.oauth.jwt.filter.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,16 +16,16 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
 
-    public SecurityConfig(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
+    public SecurityConfig(JwtService jwtService) {
+        this.jwtService = jwtService;
     }
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         log.info("SecurityConfig: JwtAuthenticationFilter");
-        return new JwtAuthenticationFilter(jwtUtil);
+        return new JwtAuthenticationFilter(jwtService);
     }
 
     @Override
@@ -33,12 +33,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http
                 .csrf().disable() // CSRF 비활성화
                 .authorizeRequests()
-                .antMatchers("/login", "/oauth2/**", "/").permitAll() // 로그인, 소셜 로그인 엔드포인트는 모두 접근 가능
+                .antMatchers("/").permitAll() // 로그인, 소셜 로그인 엔드포인트는 모두 접근 가능
                 .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
-        log.info("http : "+http);
+        log.info("http : " + http);
         log.info("HttpSecurity configuration complete");
     }
 

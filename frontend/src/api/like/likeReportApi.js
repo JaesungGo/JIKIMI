@@ -1,6 +1,6 @@
 import axiosInstance from '@/axiosInstance'; // axiosInstance 가져오기
 
-const BASE_URL = '/api/like/report';
+const BASE_URL = '/like/report';
 
 export default {
   async getList(params) {

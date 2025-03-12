@@ -49,7 +49,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import axiosInstance from '../axiosInstance';
 import DOMPurify from 'dompurify';
 
 const chatVisible = ref(false);
@@ -84,11 +84,6 @@ const sanitizeAndStyleMessage = (content) => {
 
   return sanitizedContent;
 };
-
-const api = axios.create({
-  baseURL: 'http://localhost:8080',
-  withCredentials: true,
-});
 
 const toggleChat = () => {
   chatVisible.value = !chatVisible.value;
@@ -130,17 +125,9 @@ const sendMessage = async () => {
   saveMessages();
 
   try {
-    const response = await api.post(
-      '/api/chat/chatbot',
-      {
-        prompt: userInput.value,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-      }
-    );
+    const response = await axiosInstance.post('/chat/chatbot', {
+      prompt: userInput.value,
+    });
 
     const content = response.data.content || '';
     messages.value.push({

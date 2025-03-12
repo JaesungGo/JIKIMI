@@ -57,7 +57,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import axiosInstance from '../../axiosInstance';
 
 const articles = ref([]);
 const isLoading = ref(true);
@@ -80,7 +80,7 @@ const fetchBlogs = async (page) => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const response = await axios.get('/api/blog', {
+    const response = await axiosInstance.get('/blog', {
       params: {
         query: '전세사기',
         display: itemsPerPage,

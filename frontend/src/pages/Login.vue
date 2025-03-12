@@ -22,50 +22,67 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axiosInstance from '@/axiosInstance';
 
 export default {
   name: 'login',
+  
   methods: {
-    // handleKakaoLogin() {
-    //   window.location.href = 'http://localhost:8080/oauth/KAKAO';
-    // },
-    handleNaverLogin() {
-      window.location.href = 'http://localhost:8080/oauth/NAVER';
+    async handleNaverLogin() {
+      try {
+        window.location.href = `${import.meta.env.VITE_API_URL}/api/oauth/NAVER`;
+        console.log('Naver login initiated', response.data);
+      } catch (error) {
+        console.error('Error during Naver login', error);
+      }
     },
-    handleGoogleLogin() {
-      window.location.href = 'http://localhost:8080/oauth/GOOGLE';
+    
+    async handleGoogleLogin() {
+      try {
+        window.location.href = `${import.meta.env.VITE_API_URL}/api/oauth/GOOGLE`;
+        console.log('Google login initiated', response.data);
+      } catch (error) {
+        console.error('Error during Google login', error);
+      }
     },
+    
     async fetchToken(code, provider) {
       try {
-        // 인증 서버에서 JWT 쿠키를 설정
-        const response = await axios.get(
+        const response = await axiosInstance.get(
           `/oauth/login/${provider}?code=${code}`,
-          {
-            withCredentials: true, // 쿠키를 클라이언트에 저장
-          }
+          { withCredentials: true }
         );
+        console.log('Token fetched successfully:', response.data);
         return response.data;
       } catch (error) {
-        console.error('Login failed', error);
+        console.error('Login failed:', error);
+        alert('로그인에 실패했습니다. 다시 시도해주세요.');
         throw error;
       }
     },
+    
     async handleRedirect() {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const provider = urlParams.get('provider');
-      if (code && provider) {
+
+      if (!code || !provider) return;
+
+      try {
         await this.fetchToken(code, provider);
         this.$router.push('/');
+      } catch (error) {
+        console.error('Redirect handling failed:', error);
       }
     },
   },
+  
   mounted() {
     this.handleRedirect();
   },
 };
 </script>
+
 
 <style scoped>
 /* 페이지 중앙 배치 */
