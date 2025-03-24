@@ -34,7 +34,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .csrf().disable() // CSRF 비활성화
                 .authorizeRequests()
                 .antMatchers("/").permitAll() // 로그인, 소셜 로그인 엔드포인트는 모두 접근 가능
-                .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
+                .anyRequest().authenticated() // 그 외 모든 요청은 인증 필터
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 

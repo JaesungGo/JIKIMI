@@ -27,6 +27,15 @@ public class WebClientService {
         this.apiKey = apiKey;
     }
 
+
+    /**
+     * OpenAI에 요청 <-> 응답 처리 메서드
+     * @param prompt 요청에 포함할 프롬프트
+     * @param modelName 사용할 모델명 ex.gpt4o, gpt-4o-mini
+     * @param additionalContext 추가적으로 같이 전송할 프롬프트
+     * @param options 요청에 추가할 모델의 옵션
+     * @return 응답에서 추출한 내용을 Mono로 반환
+     */
     public Mono<String> sendRequestToAPI(String prompt, String modelName, String additionalContext, Map<String, Object> options) {
         String fullPrompt;
         if(prompt!= null) {
@@ -36,7 +45,6 @@ public class WebClientService {
         }
 
         String requestBody = createRequestBody(fullPrompt, modelName, options);
-        log.info("ChatService RequestBody: {}", requestBody);
 
         return webClient.post()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -46,6 +54,7 @@ public class WebClientService {
                 .bodyToMono(String.class)
                 .map(this::extractContentFromResponse);
     }
+
 
     private String createRequestBody(String fullPrompt, String modelName, Map<String, Object> options) {
         Map<String, Object> message = Map.of("role", "user", "content", fullPrompt);
@@ -62,7 +71,6 @@ public class WebClientService {
 
     private String extractContentFromResponse(String responseBody) {
         try {
-            System.out.println("responseBody = " + responseBody);
             JsonNode rootNode = objectMapper.readTree(responseBody);
             return rootNode.path("choices").get(0).path("message").path("content").asText();
         } catch (JsonProcessingException e) {
@@ -70,4 +78,5 @@ public class WebClientService {
         }
     }
 }
+
 
