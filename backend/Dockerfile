@@ -1,4 +1,3 @@
-  GNU nano 7.2                                                                                                                                         Dockerfile
 FROM gradle:jdk17 AS build
 
 WORKDIR /app
