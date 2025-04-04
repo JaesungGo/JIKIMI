@@ -23,30 +23,46 @@
 
 <script>
 import axiosInstance from '@/axiosInstance';
+import { reactive } from 'vue';
 
 export default {
   name: 'login',
   
-  methods: {
-    async handleNaverLogin() {
+  setup() {
+    const state = reactive({
+      isNavbarOpen: false,
+      isDropdownOpen: false,
+      isLoading: true,
+      errorMessage: '',
+      page: {
+        list: [],
+        totalCount: 0
+      },
+      pageRequest: {
+        page: 1,
+        amount: 100
+      }
+    });
+
+    const handleNaverLogin = async () => {
       try {
         window.location.href = `${import.meta.env.VITE_API_URL}/api/oauth/NAVER`;
         console.log('Naver login initiated', response.data);
       } catch (error) {
         console.error('Error during Naver login', error);
       }
-    },
+    };
     
-    async handleGoogleLogin() {
+    const handleGoogleLogin = async () => {
       try {
         window.location.href = `${import.meta.env.VITE_API_URL}/api/oauth/GOOGLE`;
         console.log('Google login initiated', response.data);
       } catch (error) {
         console.error('Error during Google login', error);
       }
-    },
+    };
     
-    async fetchToken(code, provider) {
+    const fetchToken = async (code, provider) => {
       try {
         const response = await axiosInstance.get(
           `/oauth/login/${provider}?code=${code}`,
@@ -59,9 +75,9 @@ export default {
         alert('로그인에 실패했습니다. 다시 시도해주세요.');
         throw error;
       }
-    },
+    };
     
-    async handleRedirect() {
+    const handleRedirect = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const provider = urlParams.get('provider');
@@ -69,12 +85,19 @@ export default {
       if (!code || !provider) return;
 
       try {
-        await this.fetchToken(code, provider);
-        this.$router.push('/');
+        await fetchToken(code, provider);
+        $router.push('/');
       } catch (error) {
         console.error('Redirect handling failed:', error);
       }
-    },
+    };
+
+    return {
+      state,
+      handleNaverLogin,
+      handleGoogleLogin,
+      handleRedirect
+    };
   },
   
   mounted() {

@@ -21,6 +21,17 @@ CREATE TABLE member_tbl (
                             UNIQUE KEY id_email (member_id, member_email)
 );
 
+DROP TABLE IF EXISTS chatbot_tbl;
+CREATE TABLE chatbot_tbl (
+                             chatbot_no int PRIMARY KEY AUTO_INCREMENT,
+                             question TEXT NOT NULL,
+                             answer TEXT NOT NULL,
+                             hit_count int DEFAULT 1,
+                             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                             UNIQUE KEY unique_question (question(255))
+);
+
 
 -- ------------------------------------------------------------------------------
 show global variables like 'local_infile';

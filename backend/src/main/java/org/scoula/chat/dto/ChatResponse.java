@@ -1,15 +1,20 @@
 package org.scoula.chat.dto;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 public class ChatResponse {
 
-    private String content;
-    public ChatResponse(String content) {
+    private final String content;
+
+    private ChatResponse(String content){
         this.content = content;
+    }
+
+    public static ChatResponse of(String content){
+        return new ChatResponse(content);
     }
 
 }

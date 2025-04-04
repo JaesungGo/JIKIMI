@@ -1,5 +1,6 @@
 package org.scoula.chat.service;
 
+import lombok.RequiredArgsConstructor;
 import org.scoula.chat.dto.ChatRequestOptions;
 import reactor.core.publisher.Mono;
 
@@ -7,13 +8,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@RequiredArgsConstructor
 public abstract class ChatServiceImpl implements ChatService{
 
     protected final WebClientService webClientService;
-
-    public ChatServiceImpl(WebClientService webClientService) {
-        this.webClientService = webClientService;
-    }
 
     @Override
     public Mono<String> getResponse(String prompt, List<String> selectedAnswers) {

@@ -121,88 +121,109 @@ onMounted(() => {
   load();
 });
 
-//  <!-- ====== common Section  -->
-
+// 스크롤 관련 상태 변수들
 const scrollContainer = ref<HTMLElement | null>(null);
-let scrollInterval: number | null = null;
-let isScrolling = ref(false);
+const isScrolling = ref(false);
+let scrollInterval: ReturnType<typeof setInterval> | null = null;
 
-const page = reactive({
-  list: [],
-  totalCount: 0,
-});
-const isLoading = ref(true);
-const errorMessage = ref('');
-const pageRequest = reactive({
-  page: 1,
-  amount: 100, // 표시할 카드 수 조정
-});
+// articles computed 속성 수정
+const articles = computed(() => state.page.list);
 
-const articles = computed(() => page.list);
+// 스크롤 관련 로직 통합
+const handleScroll = () => {
+  if (scrollContainer.value && !isScrolling.value) {
+    const container = scrollContainer.value;
+    const cardWidth = container.querySelector('.card')?.clientWidth || 0;
 
-// 데이터 로드
-const load = async () => {
-  isLoading.value = true;
-  errorMessage.value = '';
-  try {
-    const response = await api.getList({
-      page: pageRequest.page,
-      amount: pageRequest.amount,
-    });
+    isScrolling.value = true;
 
-    page.list = response.list;
-    page.totalCount = response.totalCount;
-  } catch (error) {
-    errorMessage.value = '게시글을 불러오는 데 실패했습니다.';
-  } finally {
-    isLoading.value = false;
+    if (container.scrollLeft >= container.scrollWidth - container.clientWidth) {
+      // 마지막에 도달했을 때 추가 데이터 로드
+      if (state.page.list.length < state.page.totalCount) {
+        load();
+      }
+      container.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      container.scrollBy({ left: cardWidth, behavior: 'smooth' });
+    }
+
+    setTimeout(() => {
+      isScrolling.value = false;
+    }, 500);
   }
 };
 
-// Updated auto-scroll function
 const startAutoScroll = () => {
   if (scrollInterval) return;
-
-  scrollInterval = setInterval(() => {
-    if (scrollContainer.value && !isScrolling.value) {
-      const container = scrollContainer.value;
-      const cardWidth = container.querySelector('.card')?.offsetWidth || 0;
-
-      isScrolling.value = true;
-
-      if (
-        container.scrollLeft >=
-        container.scrollWidth - container.clientWidth
-      ) {
-        // Smoothly scroll back to the start
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        // Scroll to the next card
-        container.scrollBy({ left: cardWidth, behavior: 'smooth' });
-      }
-
-      // Reset isScrolling after the smooth scroll animation is likely to have finished
-      setTimeout(() => {
-        isScrolling.value = false;
-      }, 500); // Adjust this value based on your scroll animation duration
-    }
-  }, 5000); // Scroll every 5 seconds
+  scrollInterval = setInterval(handleScroll, 5000); // handleScroll 함수 사용
 };
 
-const stopAutoScroll = () => {
-  if (scrollInterval) {
-    clearInterval(scrollInterval);
-    scrollInterval = null;
+// 상태 관리 개선
+const state = reactive({
+  isLoading: false,
+  errorMessage: '',
+  page: {
+    list: [] as any[],
+    totalCount: 0
+  },
+  pageRequest: {
+    page: 1,
+    amount: 10
+  }
+});
+
+// 데이터 로드 함수 최적화
+const load = async () => {
+  if (state.isLoading) return;
+  
+  state.isLoading = true;
+  state.errorMessage = '';
+  
+  try {
+    const response = await api.getList({
+      page: state.pageRequest.page,
+      amount: state.pageRequest.amount,
+    });
+    
+    // 새로운 데이터를 기존 리스트에 추가하지 않고 교체
+    state.page.list = response.list;
+    state.page.totalCount = response.totalCount;
+  } catch (error) {
+    state.errorMessage = '게시글을 불러오는 데 실패했습니다.';
+    console.error('Error loading articles:', error);
+  } finally {
+    state.isLoading = false;
   }
 };
 
-onMounted(() => {
+// 모든 초기화 로직을 하나의 함수로 통합
+const initialize = () => {
+  // 외부 클릭 이벤트 리스너 등록
+  document.addEventListener('click', handleClickOutside);
+  
+  // 데이터 로드
   load();
+  
+  // 자동 스크롤 시작
   startAutoScroll();
+};
+
+// cleanup 로직 통합
+const cleanup = () => {
+  // 외부 클릭 이벤트 리스너 제거
+  document.removeEventListener('click', handleClickOutside);
+  
+  // 자동 스크롤 정지
+  stopAutoScroll();
+};
+
+// 단일 onMounted와 onUnmounted 사용
+onMounted(() => {
+  initialize();
 });
 
 onUnmounted(() => {
-  stopAutoScroll();
+  cleanup();
 });
 </script>
 

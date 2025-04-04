@@ -1,35 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
-      rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+            rel="stylesheet"
     />
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/turtle.png" />
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
     />
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-    <!-- 카카오 로그인 -->
-    <script
-      src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"
-      integrity="sha384-l+xbElFSnPZ2rOaPrU//2FF5B4LB8FiX5q4fXYTlfcG4PGpMkE1vcL7kNXI6Cci0"
-      crossorigin="anonymous"
-    ></script>
-    <!-- Google 로그인 -->
-    <script
-      src="https://accounts.google.com/gsi/client"
-      async
-      defer
-    ></script>
-    <!-- Map 관련 -->
-    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=<%= VITE_KAKAO_MAP_API_KEY %>&libraries=services,clusterer,drawing"></script>
-    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-  </body>
+    <title>지키미 - 부동산 안전거래 서비스</title>
+</head>
+<body>
+<div id="app"></div>
+<script type="module" src="/src/main.js"></script>
+<!-- 카카오 로그인 -->
+<script
+        src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"
+        integrity="sha384-l+xbElFSnPZ2rOaPrU//2FF5B4LB8FiX5q4fXYTlfcG4PGpMkE1vcL7kNXI6Cci0"
+        crossorigin="anonymous"
+></script>
+<!-- Google 로그인 -->
+<script
+        src="https://accounts.google.com/gsi/client"
+        async
+        defer
+></script>
+<!-- Map 관련 -->
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=<%= VITE_KAKAO_MAP_API_KEY %>&libraries=services,clusterer,drawing"></script>
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</body>
 </html>

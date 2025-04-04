@@ -1,8 +1,12 @@
 FROM gradle:jdk17 AS build
+
 WORKDIR /app
+
 COPY . .
-RUN chmod +x ./gradlew
-RUN ./gradlew clean build -x test
+
+RUN chmod +x ./gradle
+RUN gradle dependencies
+RUN gradle clean build -x test
 
 FROM tomcat:9.0-jdk17-temurin
 
@@ -19,7 +23,7 @@ log4j.logger.org.springframework=DEBUG" > /usr/local/tomcat/lib/log4j.properties
 
 
 # WAR 파일 복사 (실제 WAR 파일명으로 수정)
-COPY /build/libs/backend-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/ROOT.war
+COPY --from=build /app/build/libs/backend-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/ROOT.war
 
 # 환경 변수 설정
 ENV JAVA_OPTS="-Dlog4j.debug=true -Dlog4j.configuration=file:/usr/local/tomcat/lib/log4j.properties -Dspring.profiles.active=default"

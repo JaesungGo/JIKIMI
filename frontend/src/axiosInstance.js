@@ -4,7 +4,7 @@ import Cookies from 'js-cookie';
 
 const axiosInstance = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}/api`,
-  withCredentials: true, // 쿠키 전송을 허용
+  withCredentials: true, 
   headers: {
     'Content-Type': 'application/json', // 기본 Content-Type
   },

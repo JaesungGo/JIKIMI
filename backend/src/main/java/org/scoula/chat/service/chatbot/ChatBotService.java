@@ -1,44 +1,94 @@
 package org.scoula.chat.service.chatbot;
 
+import lombok.extern.slf4j.Slf4j;
+import org.scoula.chat.dto.ChatBotDTO;
 import org.scoula.chat.dto.ChatRequestOptions;
+import org.scoula.chat.mapper.ChatBotMapper;
 import org.scoula.chat.service.ChatServiceImpl;
 import org.scoula.chat.service.WebClientService;
 import org.scoula.dictionary.domain.DictionaryVO;
 import org.scoula.dictionary.mapper.DictionaryMapper;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 @Service
+@Slf4j
 public class ChatBotService extends ChatServiceImpl {
 
     private final DictionaryMapper dictionaryMapper;
+    private final ChatBotCacheService chatBotCacheService;
+    private final ChatBotMapper chatBotMapper;
 
-    public ChatBotService(WebClientService webClientService, DictionaryMapper dictionaryMapper) {
+    public ChatBotService(WebClientService webClientService, DictionaryMapper dictionaryMapper, ChatBotCacheService chatBotCacheService, ChatBotMapper chatBotMapper) {
         super(webClientService);
         this.dictionaryMapper = dictionaryMapper;
+        this.chatBotCacheService = chatBotCacheService;
+        this.chatBotMapper = chatBotMapper;
     }
-
 
     @Override
     public Mono<String> getResponse(String prompt, List<String> selectedAnswers) {
-        System.out.println("prompt = " + prompt);
+        String responseWithCache = chatBotCacheService.getResponseWithCache(prompt);
+        if (responseWithCache != null) {
+            return Mono.just(responseWithCache)
+                    .map(this::extractWordToLink);
+        }
         return super.getResponse(prompt, selectedAnswers)
-                .map(this::extractWordToLink);
+                .flatMap(response -> {
+                    String resultResponse = extractWordToLink(response);
+
+                    // DB에 저장 (비동기!!!!!!!!!)
+                    Mono.fromRunnable(() -> {
+                        try {
+                            String normalizedQuestion = chatBotCacheService.normalizeQuestion(prompt);
+
+                            ChatBotDTO existedData = chatBotMapper.getByQuestion(normalizedQuestion);
+
+                            if(existedData != null){
+                                existedData.setAnswer(resultResponse);
+                                existedData.setUpdatedAt(LocalDateTime.now());
+                                chatBotMapper.updateQuestion(existedData);
+                            }else{
+                                ChatBotDTO chatBotDTO = ChatBotDTO.builder()
+                                        .question(prompt)
+                                        .answer(resultResponse)
+                                        .hitCount(1L)
+                                        .createdAt(LocalDateTime.now())
+                                        .updatedAt(LocalDateTime.now())
+                                        .build();
+
+                                try{
+                                    chatBotMapper.insertQuestion(chatBotDTO);
+                                }catch (DuplicateKeyException e){
+                                    log.error("중복 키 예외 발생(MySQL)");
+                                    ChatBotDTO byQuestion = chatBotMapper.getByQuestion(normalizedQuestion);
+                                    byQuestion.setAnswer(resultResponse);
+                                    byQuestion.setUpdatedAt(LocalDateTime.now());
+                                    chatBotMapper.updateQuestion(byQuestion);
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.error("챗봇 응답 DB 저장 실패..:{}", e.getMessage());
+                        }
+                    }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+                    return Mono.just(resultResponse);
+                });
     }
 
     private String extractWordToLink(String response) {
-        System.out.println("response = " + response);
         List<DictionaryVO> dictionaries;
         try {
             dictionaries = dictionaryMapper.getList();
             dictionaries.sort((a, b) ->
                     b.getDictionaryTitle().length() - a.getDictionaryTitle().length());
 
+            // 챗봇의 답변에 Dictionary 내용이 있는지 확인
             for (DictionaryVO dictionary : dictionaries) {
                 String title = dictionary.getDictionaryTitle();
                 String pattern = "(?<!\\w)" + Pattern.quote(title) + "(?!\\w)";
@@ -48,7 +98,7 @@ public class ChatBotService extends ChatServiceImpl {
 
                 if (!newResponse.equals(response)) {
                     response = newResponse;
-                    break; // 변경된 경우 루프 종료
+                    break;
                 }
             }
             return response;
@@ -73,6 +123,5 @@ public class ChatBotService extends ChatServiceImpl {
     protected ChatRequestOptions getRequestOptions() {
         return new ChatRequestOptions(0.7, 150, 0.0, 0.0, 1);
     }
-
 
 }
